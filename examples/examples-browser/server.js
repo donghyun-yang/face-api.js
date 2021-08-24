@@ -1,8 +1,60 @@
+const http = require("http")
+const https = require("https")
+const fs = require("fs")
+
+const hostname = fs.readFileSync("/etc/letsencrypt/live/hostname", "utf8").split("\n").filter(Boolean)[0]
+const privateKey = fs.readFileSync("/etc/letsencrypt/live/{hostname}/privkey.pem".replace("{hostname}", hostname))
+const certificate = fs.readFileSync("/etc/letsencrypt/live/{hostname}/cert.pem".replace("{hostname}", hostname))
+const ca = fs.readFileSync("/etc/letsencrypt/live/{hostname}/chain.pem".replace("{hostname}", hostname))
+const credentials = { key: privateKey, cert: certificate, ca: ca }
+
 const express = require('express')
 const path = require('path')
 const { get } = require('request')
 
 const app = express()
+
+const cfg = {
+  HTTP_PORT: 3000,
+  HTTPS_PORT: 3001
+}
+
+function simpleStringify (object){
+  var simpleObject = {};
+  for (var prop in object ){
+    if (!object.hasOwnProperty(prop)){
+      continue;
+    }
+    if (typeof(object[prop]) == 'object'){
+      continue;
+    }
+    if (typeof(object[prop]) == 'function'){
+      continue;
+    }
+    simpleObject[prop] = object[prop];
+  }
+  return JSON.stringify(simpleObject); // returns cleaned up JSON
+};
+
+// redirect HTTP to HTTPS
+app.all('*', (req, res, next) => {
+  let protocol = req.headers['x-forwarded-proto'] || req.protocol;
+
+  if (protocol == 'https') {
+    next();
+  } else {
+    let port = cfg.HTTPS_PORT;
+    port = ( port == 80 || port == 443 ? '' : ':' + port )
+    console.log("PORT" + port)
+
+    let from = `${protocol}://${req.hostname}${port}${req.url}`;
+    let to = `https://${req.hostname}${port}${req.url}`;
+
+    // log and redirect
+    console.log(`[${req.method}]: ${from} -> ${to}`);
+    res.redirect(to);
+  }
+});
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
@@ -51,7 +103,9 @@ app.post('/fetch_external_image', async (req, res) => {
   }
 })
 
-app.listen(3000, () => console.log('Listening on port 3000!'))
+http.createServer(app).listen(cfg.HTTP_PORT)
+https.createServer(credentials, app).listen(cfg.HTTPS_PORT)
+console.log('Listening on port ' + cfg.HTTP_PORT + '(http), ' + cfg.HTTPS_PORT + '(https)')
 
 function request(url, returnBuffer = true, timeout = 10000) {
   return new Promise(function(resolve, reject) {

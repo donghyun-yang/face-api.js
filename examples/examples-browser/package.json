@@ -5,6 +5,8 @@
   "author": "justadudewhohacks",
   "license": "MIT",
   "dependencies": {
+    "http": "^0.0.1-security",
+    "https": "^1.0.0",
     "express": "^4.17.1",
     "request": "^2.88.2",
     "@tensorflow/tfjs-backend-wasm": "^3.8.0"
