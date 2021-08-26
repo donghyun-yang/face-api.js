@@ -72,6 +72,10 @@ function renderNavBar(navbarId, exampleUri) {
       uri: 'webcam_face_landmark_detection_wasm',
       name: '(WebAssembly) Webcam Face Landmark Detection'
     },
+    {
+      uri: 'webcam_camshift_opencv',
+      name: '(opencv.js) Webcam CamShift'
+    },
     // {
     //   uri: 'webcam_face_expression_recognition',
     //   name: 'Webcam Face Expression Recognition'
